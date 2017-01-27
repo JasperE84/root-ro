@@ -6,7 +6,7 @@ This files contains some ideas and code of the following projects:
 - https://gist.github.com/niun/34c945d70753fc9e2cc7
 - https://github.com/chesty/overlayroot
 
-Congratulate the original authors if this files works as expected. Too, you can congratulate to me to join all files in a one repository.
+Congratulate the original authors if these files works as expected. Too, you can congratulate to me to join all files in a one repository.
 
 Setup
 =====
