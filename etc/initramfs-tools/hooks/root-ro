@@ -1,0 +1,7 @@
+#!/bin/sh
+
+. /usr/share/initramfs-tools/scripts/functions
+. /usr/share/initramfs-tools/hook-functions
+
+copy_exec /sbin/fsck
+
