@@ -1,17 +1,12 @@
 #!/bin/sh
 #
-#  Read-only Root-FS for Raspian
+#  Root-RO for Raspian
+#  - http://www.josepsanz.net
+#  - http://www.saltos.org
 #
-#  Modified 2015 by Pascal Rosin to work on raspian-ua-netinst with
-#  overlayfs integrated in Linux Kernel >= 3.18.
-#
-#  Originally written by Axel Heider (Copyright 2012) for Ubuntu 11.10.
-#  This version can be found here:
-#  https://help.ubuntu.com/community/aufsRootFileSystemOnUsbFlash#Overlayfs
-#
-#  Based on scripts from
-#    Sebastian P.
-#    Nicholas A. Schembri State College PA USA
+#  Based on the work of:
+#  - https://gist.github.com/niun/34c945d70753fc9e2cc7
+#  - https://github.com/chesty/overlayroot
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -26,39 +21,6 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see
 #    <http://www.gnu.org/licenses/>.
-#
-#
-# Changelog:
-#
-# v1.0.0
-#   - written by Axel Heider for Ubuntu 11.10
-#
-# v2.0.0
-#   - Modified to work with overlayfs integrated in Linux Kernel (>= 3.18)
-#   - introduce workdir needed for new overlayfs
-#   - change `mount --move` to `mount -o move` to drop busybox requirement
-#   - Tested with raspian-ua-netinst v1.0.7
-#     (Linux 3.18.0-trunk-rpi, Debian 3.18.5) on a Raspberry Pi.
-#     The aufs part is not tested!
-#
-# Notes:
-#   * no changes to the root fs are made by this script.
-#   * if /home/[user] is on the RO root fs, files are in ram and not saved.
-#
-# Install:
-#  put this file in /etc/initramfs-tools/scripts/init-bottom/root-ro
-#  chmod 0755 /etc/initramfs-tools/scripts/init-bottom/root-ro
-#  update-initramfs -u
-#  add `root-ro-driver=overlay` to the line in /boot/cmdline.txt
-#
-# Disable read-only root fs
-#   * option 1: kernel boot parameter "disable-root-ro=true"
-#   * option 2: create file "/disable-root-ro"
-#
-# ROOT_RO_DRIVER variable controls which driver isused for the ro/rw layering
-#   Supported drivers are: overlayfs, aufs
-#  the kernel parameter "root-ro-driver=[driver]" can be used to initialize
-#  the variable ROOT_RO_DRIVER. If nothing is given, overlayfs is used.
 #
 
 # no pre requirement
