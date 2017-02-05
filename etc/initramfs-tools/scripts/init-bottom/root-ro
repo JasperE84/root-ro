@@ -71,7 +71,7 @@ if [ $? -ne 0 ]; then
     exit 0
 fi
 
-# mount a tempfs at /mnt/root-rw
+# mount a tmpfs at /mnt/root-rw
 mount -t tmpfs tmpfs /mnt/root-rw
 if [ $? -ne 0 ]; then
     log_failure_msg "ERROR 5: failed to create tmpfs"
@@ -111,7 +111,7 @@ if [ $? -ne 0 ]; then
     exit 0
 fi
 
-# mount a tempfs at /mnt/boot-rw
+# mount a tmpfs at /mnt/boot-rw
 mount -t tmpfs tmpfs /mnt/boot-rw
 if [ $? -ne 0 ]; then
     log_failure_msg "ERROR 11: failed to create tmpfs"
@@ -170,7 +170,7 @@ if [ $? -ne 0 ]; then
     exit 0
 fi
 
-# mount virtual fs ${rootmnt} with rw-fs /mnt/root-rw on top or ro-fs /mnt/root-ro.
+# mount virtual fs for boot directory
 mount -t overlay -o lowerdir=/mnt/boot-ro2,upperdir=/mnt/boot-rw/upper,workdir=/mnt/boot-rw/work overlay ${rootmnt}/boot
 if [ $? -ne 0 ]; then
     log_failure_msg "ERROR 19: failed to create new ro/rw layer on ${rootmnt}/boot"
@@ -210,11 +210,19 @@ if [ $? -ne 0 ]; then
     exit 0
 fi
 
+# move mount from /mnt/boot-ro2 to ${rootmnt}/mnt/boot-ro2
+[ -d ${rootmnt}/mnt/boot-ro2 ] || mkdir -p ${rootmnt}/mnt/boot-ro2
+mount -o move /mnt/boot-ro2 ${rootmnt}/mnt/boot-ro2
+if [ $? -ne 0 ]; then
+    log_failure_msg "ERROR 23: failed to move /mnt/boot-ro2 to ${rootmnt}/mnt/boot-ro2"
+    exit 0
+fi
+
 # move mount from /mnt/boot-rw to ${rootmnt}/mnt/boot-rw
 [ -d ${rootmnt}/mnt/boot-rw ] || mkdir -p ${rootmnt}/mnt/boot-rw
 mount -o move /mnt/boot-rw ${rootmnt}/mnt/boot-rw
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 23: failed to move /mnt/boot-rw to ${rootmnt}/mnt/boot-rw"
+    log_failure_msg "ERROR 24: failed to move /mnt/boot-rw to ${rootmnt}/mnt/boot-rw"
     exit 0
 fi
 
@@ -254,14 +262,14 @@ ${ROOT} /mnt/root-ro ${ROOT_TYPE} ${ROOT_OPTIONS} 0 0
 #
 EOF
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 24: failed to modify /etc/fstab (step 1)"
+    log_failure_msg "ERROR 25: failed to modify /etc/fstab (step 1)"
     #exit 0
 fi
 
 #remove root, boot and swap from fstab
 cat ${rootmnt}/mnt/root-ro/etc/fstab | awk '{if($2!="/"&&$2!="/boot"&&$2!="swap")print $0}' >> ${rootmnt}/etc/fstab
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 25: failed to modify etc/fstab (step 2)"
+    log_failure_msg "ERROR 26: failed to modify etc/fstab (step 2)"
     #exit 0
 fi
 
