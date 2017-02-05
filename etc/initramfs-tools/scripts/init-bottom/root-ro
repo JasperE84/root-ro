@@ -51,44 +51,43 @@ if [ $? -ne 0 ]; then
     exit 0
 fi
 
+modprobe -qb fuse
+if [ $? -ne 0 ]; then
+    log_failure_msg "ERROR 2: missing kernel module fuse"
+    exit 0
+fi
+
 # make the mount point on the init root fs /mnt/root-ro
 [ -d /mnt/root-ro ] || mkdir -p /mnt/root-ro
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 2: failed to create /mnt/root-ro"
+    log_failure_msg "ERROR 3: failed to create /mnt/root-ro"
     exit 0
 fi
 
 # make the mount point on the init root fs /mnt/root-rw
 [ -d /mnt/root-rw ] || mkdir -p /mnt/root-rw
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 3: failed to create /mnt/root-rw"
+    log_failure_msg "ERROR 4: failed to create /mnt/root-rw"
     exit 0
 fi
 
-# mount a tempfs using the device name tmpfs-root at /mnt/root-rw
-mount -t tmpfs tmpfs-root /mnt/root-rw
+# mount a tempfs at /mnt/root-rw
+mount -t tmpfs tmpfs /mnt/root-rw
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 4: failed to create tmpfs"
+    log_failure_msg "ERROR 5: failed to create tmpfs"
     exit 0
 fi
 
 [ -d /mnt/root-rw/upper ] || mkdir -p /mnt/root-rw/upper
 if [ $? -ne 0 ]; then
-	log_failure_msg "ERROR 5: failed to create /mnt/root-rw/upper"
+	log_failure_msg "ERROR 6: failed to create /mnt/root-rw/upper"
 	exit 0
 fi
 
 [ -d /mnt/root-rw/work ] || mkdir -p /mnt/root-rw/work
 if [ $? -ne 0 ]; then
-	log_failure_msg "ERROR 6: failed to create /mnt/root-rw/work"
+	log_failure_msg "ERROR 7: failed to create /mnt/root-rw/work"
 	exit 0
-fi
-
-# root is mounted on ${rootmnt}, move it to /mnt/root-ro.
-mount -o move ${rootmnt} /mnt/root-ro
-if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 7: failed to move root away from ${rootmnt} to /mnt/root-ro"
-    exit 0
 fi
 
 # make the mount point on the init boot fs /mnt/boot-ro
@@ -98,26 +97,59 @@ if [ $? -ne 0 ]; then
     exit 0
 fi
 
+# make the mount point on the init boot fs /mnt/boot-ro2
+[ -d /mnt/boot-ro2 ] || mkdir -p /mnt/boot-ro2
+if [ $? -ne 0 ]; then
+    log_failure_msg "ERROR 9: failed to create /mnt/boot-ro2"
+    exit 0
+fi
+
+# make the mount point on the init boot fs /mnt/boot-rw
+[ -d /mnt/boot-rw ] || mkdir -p /mnt/boot-rw
+if [ $? -ne 0 ]; then
+    log_failure_msg "ERROR 10: failed to create /mnt/boot-rw"
+    exit 0
+fi
+
+# mount a tempfs at /mnt/boot-rw
+mount -t tmpfs tmpfs /mnt/boot-rw
+if [ $? -ne 0 ]; then
+    log_failure_msg "ERROR 11: failed to create tmpfs"
+    exit 0
+fi
+
+[ -d /mnt/boot-rw/upper ] || mkdir -p /mnt/boot-rw/upper
+if [ $? -ne 0 ]; then
+	log_failure_msg "ERROR 12: failed to create /mnt/boot-rw/upper"
+	exit 0
+fi
+
+[ -d /mnt/boot-rw/work ] || mkdir -p /mnt/boot-rw/work
+if [ $? -ne 0 ]; then
+	log_failure_msg "ERROR 13: failed to create /mnt/boot-rw/work"
+	exit 0
+fi
+
+# root is mounted on ${rootmnt}, move it to /mnt/root-ro.
+mount -o move ${rootmnt} /mnt/root-ro
+if [ $? -ne 0 ]; then
+    log_failure_msg "ERROR 14: failed to move root away from ${rootmnt} to /mnt/root-ro"
+    exit 0
+fi
+
 # mount boot device to /mnt/boot-ro
 BOOTDEV=$(cat /mnt/root-ro/etc/fstab | awk '{if($2=="/boot")print $1}')
 mount -o ro $BOOTDEV /mnt/boot-ro
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 9: failed to mount ${BOOTDEV} to /mnt/boot-ro"
+    log_failure_msg "ERROR 15: failed to mount ${BOOTDEV} to /mnt/boot-ro"
     exit 0
 fi
 
-# create boot on upper directory
-[ -d /mnt/root-rw/upper/boot ] || mkdir -p /mnt/root-rw/upper/boot
+# bindfs /mnt/boot-ro to /mnt/boot-ro2
+bindfs /mnt/boot-ro /mnt/boot-ro2
 if [ $? -ne 0 ]; then
-	log_failure_msg "ERROR 10: failed to create /mnt/root-rw/upper/boot"
-	exit 0
-fi
-
-# copy all boot to upper directory
-rsync -va /mnt/boot-ro/* /mnt/root-rw/upper/boot/
-if [ $? -ne 0 ]; then
-	log_failure_msg "ERROR 11: failed to rsync from /mnt/boot-ro/* to /mnt/root-rw/upper/boot/"
-	exit 0
+    log_failure_msg "ERROR 16: failed to bindfs /mnt/boot-ro to /mnt/boot-ro2"
+    exit 0
 fi
 
 # there is nothing left at ${rootmnt} now. So for any error we get we should
@@ -128,13 +160,20 @@ fi
 # mount virtual fs ${rootmnt} with rw-fs /mnt/root-rw on top or ro-fs /mnt/root-ro.
 mount -t overlay -o lowerdir=/mnt/root-ro,upperdir=/mnt/root-rw/upper,workdir=/mnt/root-rw/work overlay ${rootmnt}
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 12: failed to create new ro/rw layer on ${rootmnt}"
+    log_failure_msg "ERROR 17: failed to create new ro/rw layer on ${rootmnt}"
     # do recovery and try resoring the mount for ${rootmnt}
     mount -o move /mnt/root-ro ${rootmnt}
     if [ $? -ne 0 ]; then
        # thats bad, drop to shell to let the user try fixing this
-       panic "ERROR 13: failed to move /mnt/root-ro back to ${rootmnt}"
+       panic "ERROR 18: failed to move /mnt/root-ro back to ${rootmnt}"
     fi
+    exit 0
+fi
+
+# mount virtual fs ${rootmnt} with rw-fs /mnt/root-rw on top or ro-fs /mnt/root-ro.
+mount -t overlay -o lowerdir=/mnt/boot-ro2,upperdir=/mnt/boot-rw/upper,workdir=/mnt/boot-rw/work overlay ${rootmnt}/boot
+if [ $? -ne 0 ]; then
+    log_failure_msg "ERROR 19: failed to create new ro/rw layer on ${rootmnt}/boot"
     exit 0
 fi
 
@@ -151,7 +190,7 @@ fi
 [ -d ${rootmnt}/mnt/root-ro ] || mkdir -p ${rootmnt}/mnt/root-ro
 mount -o move /mnt/root-ro ${rootmnt}/mnt/root-ro
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 14: failed to move /mnt/root-ro to ${rootmnt}/mnt/root-ro"
+    log_failure_msg "ERROR 20: failed to move /mnt/root-ro to ${rootmnt}/mnt/root-ro"
     exit 0
 fi
 
@@ -159,7 +198,7 @@ fi
 [ -d ${rootmnt}/mnt/root-rw ] || mkdir -p ${rootmnt}/mnt/root-rw
 mount -o move /mnt/root-rw ${rootmnt}/mnt/root-rw
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 15: failed to move /mnt/root-rw to ${rootmnt}/mnt/root-rw"
+    log_failure_msg "ERROR 21: failed to move /mnt/root-rw to ${rootmnt}/mnt/root-rw"
     exit 0
 fi
 
@@ -167,7 +206,15 @@ fi
 [ -d ${rootmnt}/mnt/boot-ro ] || mkdir -p ${rootmnt}/mnt/boot-ro
 mount -o move /mnt/boot-ro ${rootmnt}/mnt/boot-ro
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 16: failed to move /mnt/boot-ro to ${rootmnt}/mnt/boot-ro"
+    log_failure_msg "ERROR 22: failed to move /mnt/boot-ro to ${rootmnt}/mnt/boot-ro"
+    exit 0
+fi
+
+# move mount from /mnt/boot-rw to ${rootmnt}/mnt/boot-rw
+[ -d ${rootmnt}/mnt/boot-rw ] || mkdir -p ${rootmnt}/mnt/boot-rw
+mount -o move /mnt/boot-rw ${rootmnt}/mnt/boot-rw
+if [ $? -ne 0 ]; then
+    log_failure_msg "ERROR 23: failed to move /mnt/boot-rw to ${rootmnt}/mnt/boot-rw"
     exit 0
 fi
 
@@ -207,14 +254,14 @@ ${ROOT} /mnt/root-ro ${ROOT_TYPE} ${ROOT_OPTIONS} 0 0
 #
 EOF
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 17: failed to modify /etc/fstab (step 1)"
+    log_failure_msg "ERROR 24: failed to modify /etc/fstab (step 1)"
     #exit 0
 fi
 
 #remove root, boot and swap from fstab
 cat ${rootmnt}/mnt/root-ro/etc/fstab | awk '{if($2!="/"&&$2!="/boot"&&$2!="swap")print $0}' >> ${rootmnt}/etc/fstab
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 18: failed to modify etc/fstab (step 2)"
+    log_failure_msg "ERROR 25: failed to modify etc/fstab (step 2)"
     #exit 0
 fi
 

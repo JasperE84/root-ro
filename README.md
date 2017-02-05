@@ -17,7 +17,7 @@ cd /home/pi
 sudo bash
 
 echo Installing all dependencies
-apt-get install git subversion rsync gawk busybox
+apt-get install git subversion rsync gawk busybox bindfs
 
 echo Disabling swap
 dphys-swapfile swapoff
