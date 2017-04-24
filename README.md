@@ -1,12 +1,12 @@
-root-ro
-======
-This repository contains some useful files that allow me to use my raspberry pi with a readonly file system.
+Readonly Filesystem for Raspberry PI
+====================================
+This repository contains some useful files that allow you to use a Raspberry PI using a readonly filesystem.
 
 This files contains some ideas and code of the following projects:
 - https://gist.github.com/niun/34c945d70753fc9e2cc7
 - https://github.com/chesty/overlayroot
 
-Congratulate the original authors if these files works as expected. Too, you can congratulate to me to join all files in a one repository.
+Congratulate the original authors if these files works as expected. Too, you can congratulate to me to join all files in a one repository and do some changes allowing to use the root and boot filesytem in readonly mode.
 
 Setup
 =====
