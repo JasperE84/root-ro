@@ -1,5 +1,5 @@
-Readonly Filesystem for Raspberry PI
-====================================
+Read-only Root-FS with overlayfs for Raspian
+============================================
 This repository contains some useful files that allow you to use a Raspberry PI using a readonly filesystem.
 
 This files contains some ideas and code of the following projects:
