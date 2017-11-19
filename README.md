@@ -17,7 +17,7 @@ cd /home/pi
 sudo bash
 
 echo Installing all dependencies
-apt-get install git subversion rsync gawk busybox bindfs
+apt-get install git rsync gawk busybox bindfs
 
 echo Disabling swap
 dphys-swapfile swapoff
@@ -35,4 +35,24 @@ echo initramfs initrd.gz >> /boot/config.txt
 
 echo Restarting RPI
 reboot
+```
+
+Write access
+============
+Write access can be enabled using following commands
+```
+# /
+sudo mount -o remount,rw /mnt/root-ro
+# /boot
+sudo mount -o remount,rw /mnt/boot-ro
+```
+
+Read-only again
+===============
+Re-mounting it read-only is done using following commands
+```
+# /
+sudo mount -o remount,ro /mnt/root-ro
+# /boot
+sudo mount -o remount,ro /mnt/boot-ro
 ```

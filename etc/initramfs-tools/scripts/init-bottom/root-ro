@@ -139,6 +139,13 @@ fi
 
 # mount boot device to /mnt/boot-ro
 BOOTDEV=$(cat /mnt/root-ro/etc/fstab | awk '{if($2=="/boot")print $1}')
+# check BOOTDEV begins with PARTUUID=
+case "${BOOTDEV}" in
+    PARTUUID=*)
+        PARTUUID=`echo ${BOOTDEV} | cut -d= -f2`
+        # change BOOTDEV to be /dev/...
+        BOOTDEV=`blkid | grep ${PARTUUID} | cut -d: -f1`;;
+esac
 mount -o ro $BOOTDEV /mnt/boot-ro
 if [ $? -ne 0 ]; then
     log_failure_msg "ERROR 15: failed to mount ${BOOTDEV} to /mnt/boot-ro"
