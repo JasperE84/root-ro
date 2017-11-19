@@ -54,5 +54,5 @@ Re-mounting it read-only is done using following commands
 # /
 sudo mount -o remount,ro /mnt/root-ro
 # /boot
-sudo mount -o remount,rw /mnt/boot-ro
+sudo mount -o remount,ro /mnt/boot-ro
 ```
