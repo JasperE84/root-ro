@@ -56,3 +56,7 @@ sudo mount -o remount,ro /mnt/root-ro
 # /boot
 sudo mount -o remount,ro /mnt/boot-ro
 ```
+
+Original state
+==============
+To return to the original state to allow easy apt-get update/upgrade and rpi-update, you need to add a comment mark to the "initramfs initrd.gz" line to the /boot/config.txt file.
