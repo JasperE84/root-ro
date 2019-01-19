@@ -1,8 +1,9 @@
-Read-only Root-FS with overlayfs for Raspian
+Read-only Root-FS with overlayfs for Raspian Stretch
 ============================================
 This repository contains some useful files that allow you to use a Raspberry PI using a readonly filesystem.
 
 This files contains some ideas and code of the following projects:
+- https://github.com/josepsanzcamp/root-ro
 - https://gist.github.com/niun/34c945d70753fc9e2cc7
 - https://github.com/chesty/overlayroot
 
