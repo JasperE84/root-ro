@@ -6,6 +6,3 @@
 copy_exec /sbin/fsck
 copy_exec /sbin/fsck.ext4
 copy_exec /sbin/fsck.vfat
-copy_exec /usr/bin/rsync
-copy_exec /usr/bin/bindfs
-
