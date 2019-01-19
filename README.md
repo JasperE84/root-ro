@@ -14,6 +14,13 @@ This files contains some ideas and code of the following projects:
 
 Congratulate the original authors if these files works as expected. Too, you can congratulate to me to join all files in a one repository and do some changes allowing to use the root and boot filesytem in readonly mode.
 
+Why use a read-only root filesystem
+=====
+There can be many reasons to employ a root filesystem. In my case I use it on Raspberry Pi's which are used for narrowcasting, kiosk installations and dashboard applications. I have the read-only filesystem enabled for three reasons:
+- Extend microSD card lifespan
+- Make sure the filesystem isn't corrupted by random power cut shut downs (the Rpi's get their power from USB ports on flatscreen TV's)
+- Undo any user changes and fix any user-induced errors by simply rebooting the Raspberry Pi
+
 Setup
 =====
 To use this code, you can execute the follow commands:
