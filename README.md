@@ -14,12 +14,13 @@ Setup
 To use this code, you can execute the follow commands:
 
 ```
+sudo su
 apt-get -y install git
 cd /home/pi
 git clone https://github.com/JasperE84/root-ro.git
 cd root-ro
 chmod +x install.sh
-sudo ./install.sh
+./install.sh
 ```
 
 Rebooting to permanent write-mode (disabling the overlay fs)
