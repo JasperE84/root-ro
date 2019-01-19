@@ -24,7 +24,7 @@ fi
 
 
 
-echo Disabling swap, we dont wan't swap files in a read-only root filesystem...
+echo Disabling swap, we dont want swap files in a read-only root filesystem...
 dphys-swapfile swapoff
 dphys-swapfile uninstall
 update-rc.d dphys-swapfile disable
