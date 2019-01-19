@@ -1,6 +1,9 @@
-Read-only Root-FS for Raspbian Stretch with overlay fs
+Read-only root filesystem for Raspbian Stretch with overlay fs
 ============================================
 This repository contains some useful files that allow you to use a Raspberry PI using a readonly filesystem.
+After running install.sh (see setup instructions below) everything will be set up and the system will reboot into read-only mode.
+
+See instructions below to see how to switch to permanent or temporary write-mode.
 
 This files contains some ideas and code of the following projects:
 - https://github.com/josepsanzcamp/root-ro
