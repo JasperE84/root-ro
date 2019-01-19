@@ -32,7 +32,6 @@ Read more about the overlay filesystem here: https://wiki.archlinux.org/index.ph
 Setup
 =====
 To get everything configured and to enable the read-only filesystem, you can simply paste these commands.
-(!) The install.sh script will configure and immediately reboot the system into readonly mode.
 ```
 sudo su
 apt-get -y install git
@@ -42,6 +41,7 @@ cd root-ro
 chmod +x install.sh
 ./install.sh
 ```
+The install.sh script will configure and immediately reboot the system into readonly mode.
 
 Rebooting to permanent write-mode (disabling the overlay fs)
 ============
