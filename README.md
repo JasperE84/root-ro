@@ -1,7 +1,7 @@
 Read-only root filesystem for Raspbian Stretch
 ============================================
 This repository contains some useful files that allow you to use a Raspberry PI using a readonly filesystem.
-After running install.sh (see setup instructions below) everything will be set up and the system will reboot into read-only mode.
+After running install.sh everything will be set up and the system will reboot into read-only mode.
 
 See instructions below to see how to switch to permanent or temporary write-mode.
 
@@ -16,14 +16,14 @@ Congratulate the original authors if these files works as expected. Too, you can
 
 Why use a read-only root filesystem
 =====
-There can be many reasons to employ a root filesystem. In my case I use it on Raspberry Pi's which are used for narrowcasting, kiosk installations and dashboard applications. I have the read-only filesystem enabled for three reasons:
-- Extend microSD card lifespan
-- Make sure the filesystem isn't corrupted by random power cut shut downs (the Rpi's get their power from USB ports on flatscreen TV's)
-- Undo any user changes and fix any user-induced errors by simply rebooting the Raspberry Pi
+There can be many reasons to configure a read only root filesystem. In my case I use it on Raspberry Pi's which are used for narrowcasting, kiosk installations and dashboard applications. I have the read-only filesystem enabled for three reasons:
+- Extend microSD card lifespan.
+- Make sure the filesystem isn't corrupted by random power cut shut downs (the Rpi's get their power from USB ports on flatscreen TV's).
+- Undo any user changes and fix any user-induced errors by simply rebooting the Raspberry Pi.
 
 Setup
 =====
-To use this code, you can execute the follow commands:
+To enable the read-only filesystem, you can execute the follow commands:
 
 ```
 sudo su
