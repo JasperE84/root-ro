@@ -14,32 +14,43 @@ Setup
 To use this code, you can execute the follow commands:
 
 ```
-cd /home/pi
 apt-get -y install git
+cd /home/pi
 git clone https://github.com/JasperE84/root-ro.git
 cd root-ro
 chmod +x install.sh
 sudo ./install.sh
 ```
 
-Write access
+Rebooting to permanent write-mode (disabling the overlay fs)
 ============
-Write access can be enabled using following commands
+Execute 
 ```
-# /
-sudo mount -o remount,rw /mnt/root-ro
-# /boot
-sudo mount -o remount,rw /mnt/boot-ro
+sudo /root/reboot-to-writable-mode.sh
 ```
 
-Read-only again
-===============
-Re-mounting it read-only is done using following commands
+Rebooting to permanent read-only mode (enabling the overlay fs)
+============
+Execute 
 ```
-# /
+sudo /root/reboot-to-readonly-mode.sh
+```
+
+Enabling temporary write access mode:
+============
+Write access can be enabled using following command.
+```
+sudo mount -o remount,rw /mnt/root-ro
+chroot /mnt/root-ro
+```
+
+
+Exiting temporary write access mode:
+===============
+Exit the chroot and re-mounting the filesystem:
+```
+eit
 sudo mount -o remount,ro /mnt/root-ro
-# /boot
-sudo mount -o remount,ro /mnt/boot-ro
 ```
 
 Original state
