@@ -5,6 +5,8 @@ After running install.sh (see setup instructions below) everything will be set u
 
 See instructions below to see how to switch to permanent or temporary write-mode.
 
+This script is tested with a freshly deployed Raspbian image with "desktop and recommended software", specifically with the img file dated 2018-11-13, kernel 4.14. (Tested on a Rpi 3B+)
+
 This files contains some ideas and code of the following projects:
 - https://github.com/josepsanzcamp/root-ro
 - https://gist.github.com/niun/34c945d70753fc9e2cc7
