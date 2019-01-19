@@ -14,11 +14,12 @@ Setup
 To use this code, you can execute the follow commands:
 
 ```
+cd /home/pi
 apt-get -y install git
 git clone https://github.com/JasperE84/root-ro.git
 cd root-ro
 chmod +x install.sh
-./install.sh
+sudo ./install.sh
 ```
 
 Write access
