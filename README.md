@@ -21,6 +21,14 @@ There can be many reasons to configure a read only root filesystem. In my case I
 - Make sure the filesystem isn't corrupted by random power cut shut downs (the Rpi's get their power from USB ports on flatscreen TV's).
 - Undo any user changes and fix any user-induced errors by simply rebooting the Raspberry Pi.
 
+How it works
+====
+The script uses an overlay filesystem. Basically the normal root storage device gets mounted in readonly bottom layer. A writable in-memory layer is configured on top of it. Any changes made will be written to the top layer and will not be written to the I/O device. There are two options to go back to write mode.
+1. The bottom layer can be remounted in readwrite mode, chroot to the mount point of the bottom layer and make changes there.
+2. Use the provided script in /root to disable or enable the overlayfs altogether after a reboot.
+
+Read more about the overlay filesystem here: https://wiki.archlinux.org/index.php/Overlay_filesystem
+
 Setup
 =====
 To enable the read-only filesystem, you can execute the follow commands:
