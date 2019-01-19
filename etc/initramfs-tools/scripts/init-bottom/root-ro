@@ -1,12 +1,14 @@
 #!/bin/sh
 #
-#  Root-RO for Raspian
-#  - http://www.josepsanz.net
-#  - http://www.saltos.org
+#  Read-only Root-FS for Raspian Stretch
 #
-#  Based on the work of:
-#  - https://gist.github.com/niun/34c945d70753fc9e2cc7
-#  - https://github.com/chesty/overlayroot
+#  Modified 2019 by Jasper Ennik to work with Raspain Stretch
+#
+#  Based on scripts from
+#    Sebastian P., Nicholas A., Axel Heider, Pascal Rosin
+#  And sources found at
+#    Niun: https://gist.github.com/niun/34c945d70753fc9e2cc7
+#    Josep Sanz: https://github.com/josepsanzcamp/root-ro
 #
 #  This program is free software: you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -22,17 +24,56 @@
 #    along with this program.  If not, see
 #    <http://www.gnu.org/licenses/>.
 #
+#
+# Changelog:
+#
+# v1.0.0
+#   - written by Axel Heider for Ubuntu 11.10
+#
+# v2.0.0
+#   - Modified to work with overlayfs integrated in Linux Kernel (>= 3.18)
+#   - introduce workdir needed for new overlayfs
+#   - change `mount --move` to `mount -o move` to drop busybox requirement
+#   - Tested with raspian-ua-netinst v1.0.7
+#     (Linux 3.18.0-trunk-rpi, Debian 3.18.5) on a Raspberry Pi.
+#     The aufs part is not tested!
+#
+# v3.0.0
+#   - Mods to make it work with Raspian stretch and some console scripts to reboot
+#     to readonly/write mode.
+#
+# Notes:
+#   * no changes to the root fs are made by this script.
+#   * if /home/[user] is on the RO root fs, files are in ram and not saved.
+#
+# Install:
+#  put this file in /etc/initramfs-tools/scripts/init-bottom/root-ro
+#  chmod 0755 /etc/initramfs-tools/scripts/init-bottom/root-ro
+#  update-initramfs -u
+#  mkinitramfs -o /boot/init.gz
+#  echo initramfs init.gz >> /boot/config.txt
+#  echo overlay >> /etc/initramfs-tools/modules
+#  add `root-ro-driver=overlay` to the line in /boot/cmdline.txt
+#
+# Disable read-only root fs
+#   * option 1: kernel boot parameter "disable-root-ro=true"
+#   * option 2: create file "/disable-root-ro"
+#
+# ROOT_RO_DRIVER variable controls which driver isused for the ro/rw layering
+#   Supported drivers are: overlayfs, aufs
+#  the kernel parameter "root-ro-driver=[driver]" can be used to initialize
+#  the variable ROOT_RO_DRIVER. If nothing is given, overlayfs is used.
+#
 
 # no pre requirement
 PREREQ=""
-
 prereqs()
 {
-    echo "${PREREQ}"
+    echo "$PREREQ"
 }
 
-case "$1" in
-    prereqs)
+case $1 in
+prereqs)
     prereqs
     exit 0
     ;;
@@ -41,121 +82,117 @@ esac
 # import /usr/share/initramfs-tools/scripts/functions
 . /scripts/functions
 
+MYTAG="root-ro"
+DISABLE_MAGIC_FILE="/disable-root-ro"
+
+# parse kernel boot command line 
+ROOT_RO_DRIVER=
+DISABLE_ROOT_RO=
+for CMD_PARAM in $(cat /proc/cmdline); do
+    case ${CMD_PARAM} in
+        disable-root-ro=*)
+            DISABLE_ROOT_RO=${CMD_PARAM#disable-root-ro=}
+            ;;
+        root-ro-driver=*)
+            ROOT_RO_DRIVER=${CMD_PARAM#root-ro-driver=}
+            ;;
+    esac
+done
+
+# check if read-only root fs is disabled
+if [ ! -z "${DISABLE_ROOT_RO}" ]; then
+    log_warning_msg "${MYTAG}: disabled, found boot parameter disable-root-ro=${DISABLE_ROOT_RO}"
+    exit 0
+fi
+if [ -e "${rootmnt}${DISABLE_MAGIC_FILE}" ]; then
+    log_warning_msg "${MYTAG}: disabled, found file ${rootmnt}${DISABLE_MAGIC_FILE}"
+    exit 0
+fi
+
+# generic settings
 # ${ROOT} and ${rootmnt} are predefined by caller of this script. Note that
 # the root fs ${rootmnt} it mounted readonly on the initrams, which fits nicely
 # for our purposes.
+ROOT_RO=/mnt/root-ro
+ROOT_RW=/mnt/root-rw
+ROOT_RW_UPPER=${ROOT_RW}/upper
+ROOT_RW_WORK=${ROOT_RW}/work
 
-modprobe -qb overlay
-if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 1: missing kernel module overlay"
-    exit 0
+# check if ${ROOT_RO_DRIVER} is defined, otherwise set default
+if [ -z "${ROOT_RO_DRIVER}" ]; then
+    ROOT_RO_DRIVER=overlay
 fi
-
-modprobe -qb fuse
-if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 2: missing kernel module fuse"
-    exit 0
-fi
-
-# make the mount point on the init root fs /mnt/root-ro
-[ -d /mnt/root-ro ] || mkdir -p /mnt/root-ro
-if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 3: failed to create /mnt/root-ro"
-    exit 0
-fi
-
-# make the mount point on the init root fs /mnt/root-rw
-[ -d /mnt/root-rw ] || mkdir -p /mnt/root-rw
-if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 4: failed to create /mnt/root-rw"
-    exit 0
-fi
-
-# mount a tmpfs at /mnt/root-rw
-mount -t tmpfs tmpfs /mnt/root-rw
-if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 5: failed to create tmpfs"
-    exit 0
-fi
-
-[ -d /mnt/root-rw/upper ] || mkdir -p /mnt/root-rw/upper
-if [ $? -ne 0 ]; then
-	log_failure_msg "ERROR 6: failed to create /mnt/root-rw/upper"
-	exit 0
-fi
-
-[ -d /mnt/root-rw/work ] || mkdir -p /mnt/root-rw/work
-if [ $? -ne 0 ]; then
-	log_failure_msg "ERROR 7: failed to create /mnt/root-rw/work"
-	exit 0
-fi
-
-# make the mount point on the init boot fs /mnt/boot-ro
-[ -d /mnt/boot-ro ] || mkdir -p /mnt/boot-ro
-if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 8: failed to create /mnt/boot-ro"
-    exit 0
-fi
-
-# make the mount point on the init boot fs /mnt/boot-ro2
-[ -d /mnt/boot-ro2 ] || mkdir -p /mnt/boot-ro2
-if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 9: failed to create /mnt/boot-ro2"
-    exit 0
-fi
-
-# make the mount point on the init boot fs /mnt/boot-rw
-[ -d /mnt/boot-rw ] || mkdir -p /mnt/boot-rw
-if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 10: failed to create /mnt/boot-rw"
-    exit 0
-fi
-
-# mount a tmpfs at /mnt/boot-rw
-mount -t tmpfs tmpfs /mnt/boot-rw
-if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 11: failed to create tmpfs"
-    exit 0
-fi
-
-[ -d /mnt/boot-rw/upper ] || mkdir -p /mnt/boot-rw/upper
-if [ $? -ne 0 ]; then
-	log_failure_msg "ERROR 12: failed to create /mnt/boot-rw/upper"
-	exit 0
-fi
-
-[ -d /mnt/boot-rw/work ] || mkdir -p /mnt/boot-rw/work
-if [ $? -ne 0 ]; then
-	log_failure_msg "ERROR 13: failed to create /mnt/boot-rw/work"
-	exit 0
-fi
-
-# root is mounted on ${rootmnt}, move it to /mnt/root-ro.
-mount -o move ${rootmnt} /mnt/root-ro
-if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 14: failed to move root away from ${rootmnt} to /mnt/root-ro"
-    exit 0
-fi
-
-# mount boot device to /mnt/boot-ro
-BOOTDEV=$(cat /mnt/root-ro/etc/fstab | awk '{if($2=="/boot")print $1}')
-# check BOOTDEV begins with PARTUUID=
-case "${BOOTDEV}" in
-    PARTUUID=*)
-        PARTUUID=`echo ${BOOTDEV} | cut -d= -f2`
-        # change BOOTDEV to be /dev/...
-        BOOTDEV=`blkid | grep ${PARTUUID} | cut -d: -f1`;;
+# settings based in ${ROOT_RO_DRIVER}, stop here if unsupported.
+case ${ROOT_RO_DRIVER} in
+    overlay)
+        MOUNT_PARMS="-t overlay -o lowerdir=${ROOT_RO},upperdir=${ROOT_RW_UPPER},workdir=${ROOT_RW_WORK} overlay ${rootmnt}"
+        ;;
+    aufs)
+        MOUNT_PARMS="-t aufs -o dirs=${ROOT_RW}:${ROOT_RO}=ro aufs-root ${rootmnt}"
+        ;;
+    *)
+        panic "${MYTAG} ERROR 1: invalid ROOT_RO_DRIVER ${ROOT_RO_DRIVER}"
+        ;;
 esac
-mount -o ro $BOOTDEV /mnt/boot-ro
+
+
+# check if kernel module exists
+modprobe -qb ${ROOT_RO_DRIVER}
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 15: failed to mount ${BOOTDEV} to /mnt/boot-ro"
+    log_failure_msg "${MYTAG} ERROR 2: missing kernel module ${ROOT_RO_DRIVER}"
     exit 0
 fi
 
-# bindfs /mnt/boot-ro to /mnt/boot-ro2
-bindfs /mnt/boot-ro /mnt/boot-ro2
+# make the mount point on the init root fs ${ROOT_RW}
+[ -d ${ROOT_RW} ] || mkdir -p ${ROOT_RW}
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 16: failed to bindfs /mnt/boot-ro to /mnt/boot-ro2"
+    log_failure_msg "${MYTAG} ERROR 3: failed to create ${ROOT_RW}"
+    exit 0
+fi
+
+# make the mount point on the init root fs ${ROOT_RO}
+[ -d ${ROOT_RO} ] || mkdir -p ${ROOT_RO}
+if [ $? -ne 0 ]; then
+    log_failure_msg "${MYTAG} ERROR 4: failed to create ${ROOT_RO}"
+    exit 0
+fi
+
+# make the mount point on the init root fs ${ROOT_WORKDIR}
+[ -d ${ROOT_WORKDIR} ] || mkdir -p ${ROOT_WORKDIR}
+if [ $? -ne 0 ]; then
+    log_failure_msg "${MYTAG} ERROR 5: failed to create ${ROOT_WORKDIR}"
+    exit 0
+fi
+
+
+# mount a tempfs using the device name tmpfs-root at ${ROOT_RW}
+mount -t tmpfs tmpfs-root ${ROOT_RW}
+if [ $? -ne 0 ]; then
+    log_failure_msg "${MYTAG} ERROR 6: failed to create tmpfs"
+    exit 0
+fi
+
+if [ "${ROOT_RO_DRIVER}" = "overlay" ]; then
+
+    [ -d ${ROOT_RW_UPPER} ] || mkdir -p ${ROOT_RW_UPPER}
+    if [ $? -ne 0 ]; then
+        log_failure_msg "${MYTAG} ERROR 6.1: failed to create ${ROOT_RW_UPPER}"
+        exit 0
+    fi
+
+    [ -d ${ROOT_RW_WORK} ] || mkdir -p ${ROOT_RW_WORK}
+    if [ $? -ne 0 ]; then
+        log_failure_msg "${MYTAG} ERROR 6.2: failed to create ${ROOT_RW_WORK}"
+        exit 0
+    fi
+
+fi
+
+
+# root is mounted on ${rootmnt}, move it to ${ROOT_RO}.
+mount -o move ${rootmnt} ${ROOT_RO}
+if [ $? -ne 0 ]; then
+    log_failure_msg "${MYTAG} ERROR 7: failed to move root away from ${rootmnt} to ${ROOT_RO}"
     exit 0
 fi
 
@@ -164,77 +201,46 @@ fi
 # "panic". Otherwise the boot process is very likely to fail with even more
 # errors and leave the system in a wired state.
 
-# mount virtual fs ${rootmnt} with rw-fs /mnt/root-rw on top or ro-fs /mnt/root-ro.
-mount -t overlay -o lowerdir=/mnt/root-ro,upperdir=/mnt/root-rw/upper,workdir=/mnt/root-rw/work overlay ${rootmnt}
+# mount virtual fs ${rootmnt} with rw-fs ${ROOT_RW} on top or ro-fs ${ROOT_RO}.
+mount ${MOUNT_PARMS}
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 17: failed to create new ro/rw layer on ${rootmnt}"
+    log_failure_msg "${MYTAG} ERROR 8: failed to create new ro/rw layerd ${rootmnt}"
     # do recovery and try resoring the mount for ${rootmnt}
-    mount -o move /mnt/root-ro ${rootmnt}
+    mount -o move ${ROOT_RO} ${rootmnt}
     if [ $? -ne 0 ]; then
        # thats bad, drop to shell to let the user try fixing this
-       panic "ERROR 18: failed to move /mnt/root-ro back to ${rootmnt}"
+       panic "${MYTAG} RECOVERY ERROR: failed to move ${ROOT_RO} back to ${rootmnt}"
     fi
     exit 0
 fi
 
-# mount virtual fs for boot directory
-mount -t overlay -o lowerdir=/mnt/boot-ro2,upperdir=/mnt/boot-rw/upper,workdir=/mnt/boot-rw/work overlay ${rootmnt}/boot
-if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 19: failed to create new ro/rw layer on ${rootmnt}/boot"
-    exit 0
-fi
-
-# now the real root fs is on /mnt/root-ro of the init file system, our layered
+# now the real root fs is on ${ROOT_RO} of the init file system, our layered
 # root fs is set up at ${rootmnt}. So we can write anywhere in {rootmnt} and the
-# changes will end up in /mnt/root-rw while /mnt/root-ro it not touched. However
-# /mnt/root-ro and /mnt/root-rw are on the initramfs root fs, which will be removed
-# an replaced by ${rootmnt}. Thus we must move /mnt/root-ro and /mnt/root-rw to the
-# rootfs visible later, ie. ${rootmnt}/mnt/root-ro and ${rootmnt}/mnt/root-rw.
+# changes will end up in ${ROOT_RW} while ${ROOT_RO} it not touched. However
+# ${ROOT_RO} and ${ROOT_RW} are on the initramfs root fs, which will be removed
+# an replaced by ${rootmnt}. Thus we must move ${ROOT_RO} and ${ROOT_RW} to the
+# rootfs visible later, ie. ${rootmnt}${ROOT_RO} and ${rootmnt}${ROOT_RO}.
 # Since the layered ro/rw is already up, these changes also end up on
-# /mnt/root-rw while /mnt/root-ro is not touched.
+# ${ROOT_RW} while ${ROOT_RO} is not touched.
 
-# move mount from /mnt/root-ro to ${rootmnt}/mnt/root-ro
-[ -d ${rootmnt}/mnt/root-ro ] || mkdir -p ${rootmnt}/mnt/root-ro
-mount -o move /mnt/root-ro ${rootmnt}/mnt/root-ro
+# move mount from ${ROOT_RO} to ${rootmnt}${ROOT_RO}
+[ -d ${rootmnt}${ROOT_RO} ] || mkdir -p ${rootmnt}${ROOT_RO}
+mount -o move ${ROOT_RO} ${rootmnt}${ROOT_RO}
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 20: failed to move /mnt/root-ro to ${rootmnt}/mnt/root-ro"
+    log_failure_msg "${MYTAG} ERROR 9: failed to move ${ROOT_RO} to ${rootmnt}${ROOT_RO}"
     exit 0
 fi
 
-# move mount from /mnt/root-rw to ${rootmnt}/mnt/root-rw
-[ -d ${rootmnt}/mnt/root-rw ] || mkdir -p ${rootmnt}/mnt/root-rw
-mount -o move /mnt/root-rw ${rootmnt}/mnt/root-rw
+# move mount from ${ROOT_RW} to ${rootmnt}${ROOT_RW}
+[ -d ${rootmnt}${ROOT_RW} ] || mkdir -p ${rootmnt}${ROOT_RW}
+mount -o move ${ROOT_RW} ${rootmnt}${ROOT_RW}
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 21: failed to move /mnt/root-rw to ${rootmnt}/mnt/root-rw"
-    exit 0
-fi
-
-# move mount from /mnt/boot-ro to ${rootmnt}/mnt/boot-ro
-[ -d ${rootmnt}/mnt/boot-ro ] || mkdir -p ${rootmnt}/mnt/boot-ro
-mount -o move /mnt/boot-ro ${rootmnt}/mnt/boot-ro
-if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 22: failed to move /mnt/boot-ro to ${rootmnt}/mnt/boot-ro"
-    exit 0
-fi
-
-# move mount from /mnt/boot-ro2 to ${rootmnt}/mnt/boot-ro2
-[ -d ${rootmnt}/mnt/boot-ro2 ] || mkdir -p ${rootmnt}/mnt/boot-ro2
-mount -o move /mnt/boot-ro2 ${rootmnt}/mnt/boot-ro2
-if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 23: failed to move /mnt/boot-ro2 to ${rootmnt}/mnt/boot-ro2"
-    exit 0
-fi
-
-# move mount from /mnt/boot-rw to ${rootmnt}/mnt/boot-rw
-[ -d ${rootmnt}/mnt/boot-rw ] || mkdir -p ${rootmnt}/mnt/boot-rw
-mount -o move /mnt/boot-rw ${rootmnt}/mnt/boot-rw
-if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 24: failed to move /mnt/boot-rw to ${rootmnt}/mnt/boot-rw"
+    log_failure_msg "${MYTAG}: ERROR 10: failed to move ${ROOT_RW} to ${rootmnt}${ROOT_RW}"
     exit 0
 fi
 
 # technically, everything is set up nicely now. Since ${rootmnt} had beend
-# mounted read-only on the initfamfs already, ${rootmnt}/mnt/root-ro is it, too.
+# mounted read-only on the initfamfs already, ${rootmnt}${ROOT_RO} is it, too.
 # Now we init process could run - but unfortunately, we may have to prepare
 # some more things here.
 # Basically, there are two ways to deal with the read-only root fs. If the
@@ -245,44 +251,43 @@ fi
 #
 # Let's deal with /etc/fstab first. It usually contains an entry for the root
 # fs, which is no longer valid now. We have to remove it and add our new
-# /mnt/root-ro entry.
+# ${ROOT_RO} entry.
 # Remember we are still on the initramfs root fs here, so we have to work on
-# ${rootmnt}/etc/fstab. The original fstab is ${rootmnt}/mnt/root-ro/etc/fstab.
-ROOT_TYPE=$(cat /proc/mounts | grep ${ROOT} | cut -d' ' -f3)
-ROOT_OPTIONS=$(cat /proc/mounts | grep ${ROOT} | cut -d' ' -f4)
-BOOT_TYPE=$(cat /proc/mounts | grep ${BOOTDEV} | cut -d' ' -f3)
-BOOT_OPTIONS=$(cat /proc/mounts | grep ${BOOTDEV} | cut -d' ' -f4)
+# ${rootmnt}/etc/fstab. The original fstab is ${rootmnt}${ROOT_RO}/etc/fstab.
+ROOT_TYPE=$(cat /proc/mounts | ${rootmnt}/bin/grep ${ROOT} | ${rootmnt}/usr/bin/cut -d' ' -f3)
+ROOT_OPTIONS=$(cat /proc/mounts | ${rootmnt}/bin/grep ${ROOT} | ${rootmnt}/usr/bin/cut -d' ' -f4)
 cat <<EOF >${rootmnt}/etc/fstab
 #
-#  This fstab is in RAM, the real one can be found at /mnt/root-ro/etc/fstab
+#  This fstab is in RAM, the real one can be found at ${ROOT_RO}/etc/fstab
 #  The original entry for '/' and all swap files have been removed.  The new
 #  entry for the read-only the real root fs follows. Write access can be
 #  enabled using:
-#    sudo mount -o remount,rw /mnt/root-ro
+#    sudo mount -o remount,rw ${ROOT_RO}
 #  re-mounting it read-only is done using:
-#    sudo mount -o remount,ro /mnt/root-ro
+#    sudo mount -o remount,ro ${ROOT_RO}
 #
-${BOOTDEV} /mnt/boot-ro ${BOOT_TYPE} ${BOOT_OPTIONS} 0 0
-${ROOT} /mnt/root-ro ${ROOT_TYPE} ${ROOT_OPTIONS} 0 0
+
+${ROOT} ${ROOT_RO} ${ROOT_TYPE} ${ROOT_OPTIONS} 0 0
+
 #
-#  remaining entries from the original /mnt/root-ro/etc/fstab follow.
+#  remaining entries from the original ${ROOT_RO}/etc/fstab follow.
 #
 EOF
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 25: failed to modify /etc/fstab (step 1)"
+    log_failure_msg "${MYTAG} ERROR 11: failed to modify /etc/fstab (step 1)"
     #exit 0
 fi
 
-#remove root, boot and swap from fstab
-cat ${rootmnt}/mnt/root-ro/etc/fstab | awk '{if($2!="/"&&$2!="/boot"&&$2!="swap")print $0}' >> ${rootmnt}/etc/fstab
+#remove root entry and swap from fstab
+cat ${rootmnt}${ROOT_RO}/etc/fstab | ${rootmnt}/bin/grep -v ' / ' | ${rootmnt}/bin/grep -v swap >>${rootmnt}/etc/fstab
 if [ $? -ne 0 ]; then
-    log_failure_msg "ERROR 26: failed to modify etc/fstab (step 2)"
+    log_failure_msg "${MYTAG} ERROR 12: failed to modify etc/fstab (step 2)"
     #exit 0
 fi
 
 # now we are done. Additinal steps may be necessary depending on the actualy
 # distribution and/or its configuration.
 
-log_success_msg "Sucessfully set up ro/rw/tmpfs layer for root and boot fs using overlay"
+log_success_msg "${MYTAG} sucessfully set up ro/tmpfs-rw layered root fs using ${ROOT_RO_DRIVER}"
 
 exit 0
