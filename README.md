@@ -70,7 +70,7 @@ Exiting temporary write access mode:
 ===============
 Exit the chroot and re-mounting the filesystem:
 ```
-eit
+exit
 sudo mount -o remount,ro /mnt/root-ro
 ```
 
