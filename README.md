@@ -12,7 +12,7 @@ This files contains some ideas and code of the following projects:
 - https://gist.github.com/niun/34c945d70753fc9e2cc7
 - https://github.com/chesty/overlayroot
 
-Congratulate the original authors if these files works as expected. Too, you can congratulate to me to join all files in a one repository and do some changes allowing to use the root and boot filesytem in readonly mode.
+Congratulate the original authors if these files work as expected. 
 
 Why use a read-only root filesystem
 =====
