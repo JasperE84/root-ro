@@ -33,13 +33,12 @@ Setup
 =====
 To get everything configured and to enable the read-only filesystem, you can simply paste these commands.
 ```
-sudo su
-apt-get -y install git
+sudo apt-get -y install git
 cd /home/pi
 git clone https://github.com/JasperE84/root-ro.git
 cd root-ro
 chmod +x install.sh
-./install.sh
+sudo ./install.sh
 ```
 The install.sh script will configure and immediately reboot the system into readonly mode.
 
@@ -62,6 +61,8 @@ Enabling temporary write access mode:
 Write access can be enabled using following command.
 ```
 sudo mount -o remount,rw /mnt/root-ro
+# next command enables DNS in chroot because resolvconf service needs to read /run/resolvconf/resolv.conf
+sudo mount -o bind /run /mnt/root-ro/run
 chroot /mnt/root-ro
 ```
 
