@@ -42,7 +42,7 @@ cp etc/initramfs-tools/scripts/init-bottom/root-ro /etc/initramfs-tools/scripts/
 chmod +x /etc/initramfs-tools/scripts/init-bottom/root-ro
 
 cp etc/initramfs-tools/hooks/root-ro /etc/initramfs-tools/hooks/root-ro
-chmod +x /etc/initramfs-tools/scripts/init-bottom/root-ro
+chmod +x /etc/initramfs-tools/hooks/root-ro
 
 echo Updating initramfs...
 update-initramfs -u
