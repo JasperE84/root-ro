@@ -63,5 +63,6 @@ if [ -f /var/lib/systemd/random-seed ]; then
   rm -f /var/lib/systemd/random-seed
 fi
 
-echo Restarting RPI
-reboot
+# Restarting without warning seems a bit harsh, so we'll just inform that it's necessary
+# reboot
+echo Please restart your RPI now to boot into read-only mode
