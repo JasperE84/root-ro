@@ -64,7 +64,7 @@ Write access can be enabled using following command.
 sudo mount -o remount,rw /mnt/root-ro
 # next command enables DNS in chroot because resolvconf service needs to read /run/resolvconf/resolv.conf
 sudo mount -o bind /run /mnt/root-ro/run
-chroot /mnt/root-ro
+sudo chroot /mnt/root-ro
 ```
 
 
