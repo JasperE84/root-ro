@@ -24,11 +24,15 @@ fi
 
 
 
-echo Disabling swap, we dont want swap files in a read-only root filesystem...
-dphys-swapfile swapoff
-dphys-swapfile uninstall
-update-rc.d dphys-swapfile disable
-systemctl disable dphys-swapfile
+if dpkg --get-selections | grep -q "^dphys-swapfle\s*install$" >/dev/null; then
+    echo Disabling swap, we dont want swap files in a read-only root filesystem...
+    dphys-swapfile swapoff
+    dphys-swapfile uninstall
+    update-rc.d dphys-swapfile disable
+    systemctl disable dphys-swapfile
+else
+    echo dphys-swapfile is not installed, assuming we dont need to disable swap
+fi
 
 echo Setting up maintenance scripts in /root...
 cp reboot-to-readonly-mode.sh /root/reboot-to-readonly-mode.sh
