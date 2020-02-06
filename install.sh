@@ -24,11 +24,15 @@ fi
 
 
 
-echo Disabling swap, we dont want swap files in a read-only root filesystem...
-dphys-swapfile swapoff
-dphys-swapfile uninstall
-update-rc.d dphys-swapfile disable
-systemctl disable dphys-swapfile
+if dpkg --get-selections | grep -q "^dphys-swapfle\s*install$" >/dev/null; then
+    echo Disabling swap, we dont want swap files in a read-only root filesystem...
+    dphys-swapfile swapoff
+    dphys-swapfile uninstall
+    update-rc.d dphys-swapfile disable
+    systemctl disable dphys-swapfile
+else
+    echo dphys-swapfile is not installed, assuming we dont need to disable swap
+fi
 
 echo Setting up maintenance scripts in /root...
 cp reboot-to-readonly-mode.sh /root/reboot-to-readonly-mode.sh
@@ -59,5 +63,6 @@ if [ -f /var/lib/systemd/random-seed ]; then
   rm -f /var/lib/systemd/random-seed
 fi
 
-echo Restarting RPI
-reboot
+# Restarting without warning seems a bit harsh, so we'll just inform that it's necessary
+# reboot
+echo Please restart your RPI now to boot into read-only mode

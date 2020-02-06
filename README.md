@@ -5,7 +5,7 @@ After running install.sh everything will be set up and the system will reboot in
 
 See instructions below to see how to switch to permanent or temporary write-mode.
 
-This script is tested with a freshly deployed Raspbian image with "desktop and recommended software", specifically with the img file dated 2018-11-13, kernel 4.14. (Tested on a Rpi 3B+). It has also been tested on a recent Rasbian image (Buster) on a Rpi 4B.
+This script is tested with a freshly deployed Raspbian image with "desktop and recommended software", specifically with the img file dated 2018-11-13, kernel 4.14. (Tested on a Rpi 3B+). It has also been tested on a recent Rasbian image (Buster) on a Rpi 4B and a Rpi Zero W.
 
 This files contains some ideas and code of the following projects:
 - https://github.com/josepsanzcamp/root-ro
@@ -64,7 +64,7 @@ Write access can be enabled using following command.
 sudo mount -o remount,rw /mnt/root-ro
 # next command enables DNS in chroot because resolvconf service needs to read /run/resolvconf/resolv.conf
 sudo mount -o bind /run /mnt/root-ro/run
-chroot /mnt/root-ro
+sudo chroot /mnt/root-ro
 ```
 
 
