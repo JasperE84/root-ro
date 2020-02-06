@@ -41,7 +41,7 @@ cd root-ro
 chmod +x install.sh
 sudo ./install.sh
 ```
-The install.sh script will configure and immediately reboot the system into readonly mode.
+The install.sh script will configure and request to reboot the system.
 
 Rebooting to permanent write-mode (disabling the overlay fs)
 ============
