@@ -24,7 +24,7 @@ fi
 
 
 
-if dpkg --get-selections | grep -q "^dphys-swapfle\s*install$" >/dev/null; then
+if dpkg --get-selections | grep -q "^dphys-swapfile\s*install$" >/dev/null; then
     echo Disabling swap, we dont want swap files in a read-only root filesystem...
     dphys-swapfile swapoff
     dphys-swapfile uninstall
