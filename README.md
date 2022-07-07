@@ -79,3 +79,11 @@ sudo mount -o remount,ro /mnt/root-ro
 Original state
 ==============
 To return to the original state to allow easy apt-get update/upgrade and rpi-update, you need to add a comment mark to the "initramfs init.gz" line to the /boot/config.txt file.
+
+License and sponsor
+==============
+Released under [MIT](/LICENSE) by [@JasperE84](https://github.com/JasperE84).
+
+This project has been partly developed in time donated by [Contour - Sheet metal supplier](https://www.contour.eu/en/)
+
+Dit project is deels ontwikkeld ontwikkeld in de tijd van [Contour - Plaatwerkleverancier](https://www.contour.eu/)
